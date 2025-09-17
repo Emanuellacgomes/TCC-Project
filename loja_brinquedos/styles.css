@@ -1,9 +1,4 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f0f2f5;
-}
+
 
 .header {
     background-color: #ffffff;
@@ -661,13 +656,6 @@ body {
     border-radius: 4px; /* Opcional: para deixar as bordas arredondadas */
 }
 
-/* Estilos Gerais */
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-}
 
 .header {
     display: flex;
@@ -2523,13 +2511,6 @@ html {
     box-sizing: inherit;
 }
 
-body {
-    font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: var(--light-gray);
-    color: var(--text-color);
-}
 
 /* --- Cabeçalho --- */
 .header {
@@ -2854,9 +2835,6 @@ body {
     cursor: pointer;
 }
 
-.modal-body {
-    margin-top: 20px;
-}
 
 .option-box {
     background-color: var(--light-gray);
@@ -3305,20 +3283,14 @@ body {
     background-color: #0056b3;
 }
 
-.sold-out {
-    background-color: #ff0000;
-    color: #fff;
+.out-of-stock-btn {
+    background-color: #ff2f20; /* Vermelho */
+    color: white;
+    cursor: not-allowed;
     border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
+    padding: 10px;
     width: 100%;
-    margin-top: 10px;
+    border-radius: 5px;
+    font-size: 1em;
     font-weight: bold;
-}
-
-.sold-out:hover {
-    background-color: #ac0202;
 }

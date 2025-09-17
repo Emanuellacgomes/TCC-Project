@@ -23,28 +23,33 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_product_details' && isset
     if ($dados_brinquedo) {
         $cep_usuario = isset($_COOKIE['cep_usuario']) ? $_COOKIE['cep_usuario'] : null;
         $dados_brinquedo['frete_status'] = 'Informe seu CEP para calcular o frete.';
-        $dados_brinquedo['loja_proxima'] = null;
+        $dados_brinquedo['desconto_porcentagem'] = null;
 
         if ($cep_usuario) {
             $dados_brinquedo['frete_status'] = 'Entrega para o CEP ' . $cep_usuario . '. Frete grátis para compras acima de R$100,00.';
 
-            $cep_prefix = substr(str_replace('-', '', $cep_usuario), 0, 3);
-            $sql_loja_proxima = "SELECT nome, imagem FROM lojas WHERE LEFT(REPLACE(cep, '-', ''), 3) = ?";
-            $stmt_loja = $conn->prepare($sql_loja_proxima);
-            $stmt_loja->bind_param("s", $cep_prefix);
-            $stmt_loja->execute();
-            $result_loja = $stmt_loja->get_result();
-            $loja_proxima = $result_loja->fetch_assoc();
+            $cep_limpo = str_replace('-', '', $cep_usuario);
+            
+            $sql_desconto = "SELECT porcentagem_desconto FROM descontos_cep WHERE REPLACE(cep_prefixo, '-', '') = ?";
+            $stmt_desconto = $conn->prepare($sql_desconto);
+            
+            if ($stmt_desconto) {
+                $stmt_desconto->bind_param("s", $cep_limpo);
+                $stmt_desconto->execute();
+                $result_desconto = $stmt_desconto->get_result();
+                $desconto_row = $result_desconto->fetch_assoc();
+                $stmt_desconto->close();
 
-            if ($loja_proxima) {
-                $dados_brinquedo['preco_original'] = $dados_brinquedo['preco'];
-                $dados_brinquedo['preco_desconto'] = $dados_brinquedo['preco'] * 0.90;
-                $dados_brinquedo['loja_proxima'] = $loja_proxima;
+                if ($desconto_row) {
+                    $porcentagem_desconto = floatval($desconto_row['porcentagem_desconto']);
+                    $dados_brinquedo['preco_original'] = $dados_brinquedo['preco'];
+                    $dados_brinquedo['preco_desconto'] = $dados_brinquedo['preco'] * (1 - ($porcentagem_desconto / 100));
+                    $dados_brinquedo['desconto_porcentagem'] = $porcentagem_desconto;
+                }
+            } else {
+                 error_log("Erro ao preparar a consulta de desconto: " . $conn->error);
             }
         }
-        // Adiciona a quantidade de estoque ao JSON de retorno
-        $dados_brinquedo['estoque'] = $dados_brinquedo['estoque'];
-        
         echo json_encode($dados_brinquedo);
     } else {
         echo json_encode(array('error' => 'Brinquedo não encontrado.'));
@@ -58,46 +63,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['codigo_add_cart'])) {
         $status = "<div class='box' style='color:red;'>Você precisa estar logado para adicionar itens ao carrinho.</div>";
     } else {
         $codigo_brinquedo = $conn->real_escape_string($_POST['codigo_add_cart']);
-        $sql_brinquedo = "SELECT codigo, nome, preco, imagem, estoque FROM brinquedos WHERE codigo = '$codigo_brinquedo'";
+        $sql_brinquedo = "SELECT codigo, nome, preco, imagem FROM brinquedos WHERE codigo = '$codigo_brinquedo'";
         $result_brinquedo = $conn->query($sql_brinquedo);
         $dados_brinquedo = $result_brinquedo->fetch_assoc();
-        
         if ($dados_brinquedo) {
             $user_codigo = $_SESSION['user_codigo'];
-            $quantity_to_add = 1;
-            
-            // Verifica o estoque antes de adicionar
-            if ($dados_brinquedo['estoque'] > 0) {
-                $sql_insert_or_update = "
-                    INSERT INTO carrinho_usuario (id_usuario, codigo_brinquedo, quantidade)
-                    VALUES (?, ?, ?)
-                    ON DUPLICATE KEY UPDATE quantidade = quantidade + ?
-                ";
-                $stmt_cart = $conn->prepare($sql_insert_or_update);
-                $stmt_cart->bind_param("iiii", $user_codigo, $dados_brinquedo['codigo'], $quantity_to_add, $quantity_to_add);
-                
+            $quantity = 1;
+            $sql_insert_or_update = "
+                INSERT INTO carrinho_usuario (id_usuario, codigo_brinquedo, quantidade)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE quantidade = quantidade + ?
+            ";
+            $stmt_cart = $conn->prepare($sql_insert_or_update);
+            if ($stmt_cart) {
+                $stmt_cart->bind_param("iiii", $user_codigo, $dados_brinquedo['codigo'], $quantity, $quantity);
                 if ($stmt_cart->execute()) {
-                    // Atualiza o estoque no banco de dados
-                    $sql_update_stock = "UPDATE brinquedos SET estoque = estoque - ? WHERE codigo = ?";
-                    $stmt_stock = $conn->prepare($sql_update_stock);
-                    $stmt_stock->bind_param("ii", $quantity_to_add, $dados_brinquedo['codigo']);
-                    $stmt_stock->execute();
-                    $stmt_stock->close();
-                    
                     $status = "<div class='box'>Brinquedo adicionado ao carrinho!</div>";
                 } else {
                     $status = "<div class='box' style='color:red;'>Erro ao adicionar brinquedo ao carrinho.</div>";
                 }
                 $stmt_cart->close();
             } else {
-                $status = "<div class='box' style='color:red;'>Erro: Brinquedo esgotado.</div>";
+                $status = "<div class='box' style='color:red;'>Erro ao preparar a consulta de carrinho.</div>";
+                 error_log("Erro ao preparar a consulta de carrinho: " . $conn->error);
             }
         } else {
             $status = "<div class='box' style='color:red;'>Erro: Brinquedo não encontrado.</div>";
         }
     }
 }
-
 
 // Lógica de busca e filtro de categoria
 $searchTerm = '';
@@ -135,17 +129,21 @@ $offset = ($currentPage - 1) * $limit;
 // Contar o total de brinquedos para a paginação
 $sql_count = "SELECT COUNT(*) AS total FROM brinquedos " . $whereClause;
 $stmt_count = $conn->prepare($sql_count);
-if (!empty($params)) {
-    call_user_func_array(array($stmt_count, 'bind_param'), array_merge(array($paramTypes), $params));
+if ($stmt_count) {
+    if (!empty($params)) {
+        call_user_func_array(array($stmt_count, 'bind_param'), array_merge(array($paramTypes), $params));
+    }
+    $stmt_count->execute();
+    $result_count = $stmt_count->get_result();
+    $row_count = $result_count->fetch_assoc();
+    $totalBrinquedos = $row_count['total'];
+    $totalPaginas = ceil($totalBrinquedos / $limit);
+    $stmt_count->close();
+} else {
+     $totalPaginas = 1;
+     $totalBrinquedos = 0;
+     error_log("Erro ao preparar a consulta de contagem: " . $conn->error);
 }
-$stmt_count->execute();
-$result_count = $stmt_count->get_result();
-
-$row_count = $result_count->fetch_assoc();
-$totalBrinquedos = $row_count['total'];
-
-$totalPaginas = ceil($totalBrinquedos / $limit);
-$stmt_count->close();
 
 // Carrega as categorias para os botões de filtro
 $sql_categorias = "SELECT codigo, nome FROM categoria ORDER BY nome ASC";
@@ -158,14 +156,19 @@ if (isset($_SESSION['user_codigo'])) {
     $user_codigo = $_SESSION['user_codigo'];
     $sql_cart_count = "SELECT SUM(quantidade) AS total_itens FROM carrinho_usuario WHERE id_usuario = ?";
     $stmt_cart_count = $conn->prepare($sql_cart_count);
-    $stmt_cart_count->bind_param("i", $user_codigo);
-    $stmt_cart_count->execute();
-    $result_cart_count = $stmt_cart_count->get_result();
-    $row_cart_count = $result_cart_count->fetch_assoc();
-    if ($row_cart_count && isset($row_cart_count['total_itens'])) {
-        $cart_count = $row_cart_count['total_itens'];
+    if ($stmt_cart_count) {
+        $stmt_cart_count->bind_param("i", $user_codigo);
+        $stmt_cart_count->execute();
+        $result_cart_count = $stmt_cart_count->get_result();
+        $row_cart_count = $result_cart_count->fetch_assoc();
+        if ($row_cart_count && isset($row_cart_count['total_itens'])) {
+            $cart_count = $row_cart_count['total_itens'];
+        } else {
+            $cart_count = 0;
+        }
+        $stmt_cart_count->close();
     } else {
-        $cart_count = 0;
+        error_log("Erro ao preparar a consulta de contagem de carrinho: " . $conn->error);
     }
 }
 ?>
@@ -244,51 +247,55 @@ if (isset($_SESSION['user_codigo'])) {
         <?php
         $sql = "SELECT * FROM brinquedos " . $whereClause . " ORDER BY codigo DESC LIMIT ? OFFSET ?";
         $stmt = $conn->prepare($sql);
-
-        $newParamTypes = $paramTypes . 'ii';
-        $params_to_bind = array();
-        $params_to_bind[] = &$newParamTypes;
-        if (!empty($params)) {
-            foreach ($params as $param_ref) {
-                $params_to_bind[] = &$param_ref;
+        
+        if ($stmt) {
+            $newParamTypes = $paramTypes . 'ii';
+            $params_to_bind = array();
+            $params_to_bind[] = &$newParamTypes;
+            if (!empty($params)) {
+                foreach ($params as $param_ref) {
+                    $params_to_bind[] = &$param_ref;
+                }
             }
-        }
-        $params_to_bind[] = &$limit;
-        $params_to_bind[] = &$offset;
+            $params_to_bind[] = &$limit;
+            $params_to_bind[] = &$offset;
 
-        call_user_func_array(array($stmt, 'bind_param'), $params_to_bind);
-        
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        // NOVO: Pega o CEP do usuário para checar o desconto
-        $cep_usuario_logado = isset($_COOKIE['cep_usuario']) ? $_COOKIE['cep_usuario'] : null;
+            call_user_func_array(array($stmt, 'bind_param'), $params_to_bind);
+            
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            // NOVO: Pega o CEP do usuário para checar o desconto
+            $cep_usuario_logado = isset($_COOKIE['cep_usuario']) ? $_COOKIE['cep_usuario'] : null;
 
-        if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                
-                // NOVO: Lógica de desconto na grade principal
-                $is_desconto = false;
-                if ($cep_usuario_logado) {
-                    $cep_prefix = substr(str_replace('-', '', $cep_usuario_logado), 0, 3);
-                    $sql_check_loja = "SELECT nome FROM lojas WHERE LEFT(REPLACE(cep, '-', ''), 3) = ?";
-                    $stmt_check = $conn->prepare($sql_check_loja);
-                    $stmt_check->bind_param("s", $cep_prefix);
-                    $stmt_check->execute();
-                    $result_check = $stmt_check->get_result();
-                    if ($result_check->num_rows > 0) {
-                        $is_desconto = true;
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    
+                    $porcentagem_desconto = 0;
+                    if ($cep_usuario_logado) {
+                        $cep_limpo = str_replace('-', '', $cep_usuario_logado);
+                        $sql_desconto = "SELECT porcentagem_desconto FROM descontos_cep WHERE REPLACE(cep_prefixo, '-', '') = ?";
+                        $stmt_desconto = $conn->prepare($sql_desconto);
+                        
+                        if ($stmt_desconto) {
+                            $stmt_desconto->bind_param("s", $cep_limpo);
+                            $stmt_desconto->execute();
+                            $result_desconto = $stmt_desconto->get_result();
+                            $desconto_row = $result_desconto->fetch_assoc();
+                            $stmt_desconto->close();
+                            
+                            if ($desconto_row) {
+                                $porcentagem_desconto = floatval($desconto_row['porcentagem_desconto']);
+                            }
+                        }
                     }
-                    $stmt_check->close();
-                }
 
-                $preco_original = $row['preco'];
-                $preco_exibido = $preco_original;
-                $preco_com_desconto = $preco_original;
-                if ($is_desconto) {
-                    $preco_com_desconto = $preco_original * 0.90;
-                    $preco_exibido = $preco_com_desconto;
-                }
+                    $preco_original = $row['preco'];
+                    $preco_exibido = $preco_original;
+                    $is_desconto_aplicado = $porcentagem_desconto > 0;
+                    if ($is_desconto_aplicado) {
+                        $preco_exibido = $preco_original * (1 - ($porcentagem_desconto / 100));
+                    }
         ?>
         <div class="product_wrapper" data-codigo="<?php echo htmlspecialchars($row['codigo']); ?>">
             <div class="product-card-content">
@@ -298,7 +305,7 @@ if (isset($_SESSION['user_codigo'])) {
                 <h3><?php echo htmlspecialchars($row['nome']); ?></h3>
                 <p class="description"><?php echo htmlspecialchars($row['descricao']); ?></p>
                 <div class="price-section">
-                    <?php if ($is_desconto): ?>
+                    <?php if ($is_desconto_aplicado): ?>
                         <span class="price-original">R$ <?php echo number_format($preco_original, 2, ',', '.'); ?></span>
                         <span class="price-discounted">R$ <?php echo number_format($preco_exibido, 2, ',', '.'); ?></span>
                     <?php else: ?>
@@ -309,15 +316,18 @@ if (isset($_SESSION['user_codigo'])) {
             <?php if ($row['estoque'] > 0): ?>
                 <button class="open-details-btn">Ver Detalhes</button>
             <?php else: ?>
-                <button class="sold-out" disabled>Esgotado</button>
+                <button class="out-of-stock-btn" disabled>Esgotado</button>
             <?php endif; ?>
         </div>
         <?php
+                }
+            } else {
+                echo "<p style='text-align: center; width: 100%;'>Nenhum brinquedo encontrado.</p>";
             }
+            $stmt->close();
         } else {
-            echo "<p style='text-align: center; width: 100%;'>Nenhum brinquedo encontrado.</p>";
+            echo "<p style='text-align: center; width: 100%;'>Erro ao carregar produtos. " . $conn->error . "</p>";
         }
-        $stmt->close();
         ?>
     </div>
 
@@ -587,7 +597,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     productGrid.addEventListener('click', function(e) {
         const detailsButton = e.target.closest('.open-details-btn');
-        const addToCartButton = e.target.closest('.add-to-cart-details');
 
         if (detailsButton) {
             e.preventDefault(); 
@@ -607,35 +616,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     let priceHtml = '';
-                    if (data.loja_proxima) {
+                    if (data.desconto_porcentagem) {
                         priceHtml = 
                             '<div class="price-with-discount">' +
                                 '<span class="price-original">R$ ' + parseFloat(data.preco_original).toFixed(2).replace('.', ',') + '</span>' +
                                 '<span class="price-discounted">R$ ' + parseFloat(data.preco_desconto).toFixed(2).replace('.', ',') + '</span>' +
-                                '<div class="store-info">' +
-                                    '<img src="fotos/' + data.loja_proxima.imagem + '" alt="' + data.loja_proxima.nome + '" class="store-image">' +
-                                    '<p>Desconto de 10% por estar perto da loja ' + data.loja_proxima.nome + '!</p>' +
+                                '<div class="discount-info">' +
+                                    '<p>Você tem <strong>' + data.desconto_porcentagem + '% de desconto</strong> para este CEP!</p>' +
                                 '</div>' +
                             '</div>';
                     } else {
                         priceHtml = '<div class="details-price">R$ ' + parseFloat(data.preco).toFixed(2).replace('.', ',') + '</div>';
                     }
-                    
-                    // Lógica para o botão de adicionar ao carrinho
-                    let addToCartButtonHtml = '';
-                    if (data.estoque > 0) {
-                        if (isLoggedIn) {
-                            addToCartButtonHtml = 
-                                '<form method="post" action="loja.php">' +
-                                    '<input type="hidden" name="codigo_add_cart" value="' + data.codigo + '">' +
-                                    '<button type="submit" class="add-to-cart-details">Adicionar ao Carrinho</button>' +
-                                '</form>';
-                        } else {
-                            addToCartButtonHtml = '<button type="button" class="add-to-cart-details login-required-btn">Adicionar ao Carrinho</button>';
-                        }
-                    } else {
-                         addToCartButtonHtml = '<button type="button" class="add-to-cart-details out-of-stock-btn" disabled>Esgotado</button>';
-                    }
+
+                    const addToCartButtonHtml = isLoggedIn 
+                        ? '<form method="post" action="loja.php">' +
+                            '<input type="hidden" name="codigo_add_cart" value="' + data.codigo + '">' +
+                            '<button type="submit" class="add-to-cart-details">Adicionar ao Carrinho</button>' +
+                          '</form>'
+                        : '<button type="button" class="add-to-cart-details login-required-btn">Adicionar ao Carrinho</button>';
 
                     detailsContent.innerHTML = 
                         '<div class="details-content-wrapper">' +
@@ -646,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 '<h3>' + data.nome + '</h3>' +
                                 '<p class="details-description">' + data.descricao + '</p>' +
                                 '<div class="details-availability">' +
-                                    '<p><strong>Estoque:</strong> ' + (data.estoque > 0 ? data.estoque + ' unidades' : 'Esgotado') + '</p>' +
+                                    '<p><strong>Estoque:</strong> ' + (data.estoque > 0 ? 'Disponível' : 'Esgotado') + '</p>' +
                                     '<p class="details-frete"><strong>Frete:</strong> ' + data.frete_status + '</p>' +
                                 '</div>' +
                                 priceHtml +
