@@ -1,7 +1,7 @@
 
 
 .header {
-    background-color: #ffffff;
+    background-color: var(--primary-color);
     padding: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -137,7 +137,7 @@
     border-radius: 20px;
     cursor: pointer;
     position: relative;
-    right: -30px;
+    right: -165px;
     font-size: 0.9em;
     display: flex;
     align-items: center;
@@ -362,14 +362,21 @@
     border-radius: 4px;
 }
 .logo-loja {
-    height: 65px; /* Ajuste a altura conforme a sua imagem */
+    height: 150px; /* Ajuste a altura conforme a sua imagem */
     width: auto;
 }
-.logo-loja2 {
-    height: 65px; /* Ajuste a altura conforme a sua imagem */
-    left: -30px;
+.logo-loja-adm {
+    height: 150px; /* Ajuste a altura conforme a sua imagem */
     width: auto;
-    position: relative;
+    position: fixed;
+    top: -35px;
+}
+.logo-loja2 {
+    height: 150px; /* Ajuste a altura conforme a sua imagem */
+    width: auto;
+    position: fixed;
+    left: 115px;
+    bottom: 575px;
 }
 /* Adicione no final do seu arquivo styles.css */
 
@@ -657,18 +664,15 @@
 }
 
 
-.header {
+/* .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px;
-    background-color: #ffffff;
+    background-color: #e9ecef;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+} */
 
-.header .logo-loja {
-    height: 50px;
-}
 
 .user-actions {
     display: flex;
@@ -1003,7 +1007,7 @@
 /* Estilos para os filtros de categoria */
 .category-filters {
     position: sticky; /* Faz o elemento "grudar" na posição */
-    top: 90px; /* Define a distância do topo da tela. Ajuste este valor se a altura do seu cabeçalho for diferente. */
+    top: 70px; /* Define a distância do topo da tela. Ajuste este valor se a altura do seu cabeçalho for diferente. */
     z-index: 10; /* Garante que a barra de filtros fique acima do conteúdo da página ao rolar */
     
     /* Demais estilos que já existem */
@@ -1011,8 +1015,8 @@
     justify-content: center;
     gap: 10px;
     padding: 15px 0;
-    background-color: #e9ecef;
-    border-bottom: 1px solid #dee2e6;
+    background-color: #ff934b;
+    border-bottom: 1px solid #ff9e5e;
     flex-wrap: wrap; 
 }
 
@@ -2127,15 +2131,15 @@ body {
     color: #333;
 }
 
-.header {
+/* .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px 50px;
-    background-color: #27ae60;
+    background-color: #e9ecef;
     color: #fff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
+} */
 
 .header a {
     color: #fff;
@@ -2148,9 +2152,6 @@ body {
     color: #f1c40f;
 }
 
-.logo-loja {
-    height: 50px;
-}
 
 .header .search-container {
     display: flex;
@@ -2526,11 +2527,12 @@ html {
     z-index: 1000;
     flex-wrap: wrap;
     gap: 15px;
-}
+} 
 
 .header .logo-loja {
-    height: 60px;
+    height: 150px;
     width: auto;
+    position: fixed;
 }
 
 .search-form {
@@ -2576,6 +2578,7 @@ html {
     align-items: center;
     gap: 8px;
     transition: background-color 0.3s;
+
 }
 
 .user-actions {
@@ -3293,4 +3296,14 @@ html {
     border-radius: 5px;
     font-size: 1em;
     font-weight: bold;
+}
+.admin-button {
+    width: 25px;
+    height: 25px;
+}
+.cabecalho-background {
+    background-color: #ff6a06;
+    width: auto;
+    padding: 0;
+    display: flex;
 }

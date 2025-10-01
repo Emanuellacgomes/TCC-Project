@@ -31,6 +31,7 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
 <div class="checkout-container">
     <h2>Finalizar Compra</h2>
     
+    <!-- Passo 1 - Forma de Pagamento -->
     <div class="checkout-step" id="step-1">
         <h3><span class="step-number">1</span> - Forma de Pagamento</h3>
         <div class="order-summary">
@@ -39,50 +40,22 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
         
         <div class="payment-method">
             <div class="payment-options">
-                <div class="payment-option" onclick="selectPayment('credit_card')">
-                    <img src="https://i.ibb.co/1922j7n/credit-card.png" alt="Cartão de Crédito">
-                    <span>Cartão de Crédito</span>
-                </div>
-                <div class="payment-option" onclick="selectPayment('pix')">
-                    <img src="https://i.ibb.co/6ZzX7rM/pix.png" alt="Pix">
-                    <span>Pix</span>
-                </div>
-                <div class="payment-option" onclick="selectPayment('paypal')">
-                    <img src="https://i.ibb.co/SdnL17t/paypal.png" alt="PayPal">
-                    <span>PayPal</span>
+                <div class="payment-option selected">
+                    <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-library/mercado-pago.svg" 
+                         alt="Mercado Pago" style="width:80px;">
+                    <span>Mercado Pago (Pix, Cartão, QR Code)</span>
                 </div>
             </div>
 
-            <div id="credit_card_form" class="payment-form active-form">
-                <label for="numero_cartao">Número do Cartão:</label>
-                <input type="text" id="numero_cartao" name="numero_cartao" required placeholder="XXXX XXXX XXXX XXXX">
-                
-                <label for="nome_cartao">Nome no Cartão:</label>
-                <input type="text" id="nome_cartao" name="nome_cartao" required placeholder="NOME COMO NO CARTÃO">
-                
-                <div class="form-group-inline">
-                    <div class="input-container">
-                        <label for="validade">Validade:</label>
-                        <input type="text" id="validade" name="validade" required placeholder="MM/AA">
-                    </div>
-                    <div class="input-container">
-                        <label for="cvv">CVV:</label>
-                        <input type="text" id="cvv" name="cvv" required placeholder="XXX">
-                    </div>
-                </div>
-                <button type="button" class="submit-payment-btn" onclick="goToStep(2, 'credit_card')">Continuar</button>
-            </div>
-
-            <div id="pix_form" class="payment-form">
-                <button type="button" class="submit-payment-btn" onclick="goToStep(2, 'pix')">Continuar</button>
-            </div>
-
-            <div id="paypal_form" class="payment-form">
-                <button type="button" class="submit-payment-btn" onclick="goToStep(2, 'paypal')">Continuar</button>
+            <div class="payment-form active-form">
+                <button type="button" class="submit-payment-btn" onclick="goToStep(2, 'mercadopago')">
+                    Continuar com Mercado Pago
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- Passo 2 - Endereço de Entrega -->
     <div class="checkout-step" id="step-2" style="display:none;">
         <h3><span class="step-number">2</span> - Endereço de Entrega</h3>
         <p>Selecione uma das opções abaixo para definir o endereço.</p>
@@ -117,10 +90,11 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
                 <input type="hidden" id="map_lat" name="map_latitude">
                 <input type="hidden" id="map_lng" name="map_longitude">
             </div>
-            <button type="submit" class="submit-payment-btn">Finalizar Compra</button>
+            <button type="submit" class="submit-payment-btn">Continuar</button>
         </form>
     </div>
     
+    <!-- Passo 3 - Confirmação -->
     <div class="checkout-step" id="step-3" style="display:none;">
         <h3><span class="step-number">3</span> - Confirmação do Pedido</h3>
         <div class="summary-box">
@@ -131,33 +105,19 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
         </div>
     </div>
     
+    <!-- Formulário Hidden que vai para processar_pagamento.php -->
     <form id="checkout_form" action="processar_pagamento.php" method="POST">
-        <input type="hidden" id="payment_method_input" name="payment_method">
+        <input type="hidden" id="payment_method_input" name="payment_method" value="mercadopago">
         <input type="hidden" id="total_price_input" name="total_price" value="<?php echo htmlspecialchars(str_replace('.', ',', $total_price)); ?>">
         <div id="address_inputs_container"></div>
-        <div id="payment_inputs_container"></div>
     </form>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-    let selectedPaymentMethod = '';
     let map;
     let marker;
-    
-    function selectPayment(paymentMethod) {
-        document.querySelectorAll('.payment-form').forEach(form => {
-            form.classList.remove('active-form');
-        });
-        document.getElementById(paymentMethod + '_form').classList.add('active-form');
-
-        document.querySelectorAll('.payment-option').forEach(option => {
-            option.classList.remove('selected');
-        });
-        document.querySelector(`.payment-option[onclick="selectPayment('${paymentMethod}')"]`).classList.add('selected');
-
-        selectedPaymentMethod = paymentMethod;
-    }
+    let selectedPaymentMethod = 'mercadopago'; // fixo agora
 
     function goToStep(step, paymentMethod = null) {
         if (paymentMethod) {
@@ -165,15 +125,13 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
         }
 
         if (step === 2 && !selectedPaymentMethod) {
-            alert('Por favor, selecione uma forma de pagamento.');
+            alert('Por favor, selecione a forma de pagamento.');
             return false;
         }
 
         if (step === 3) {
             const paymentMethodText = {
-                'credit_card': 'Cartão de Crédito',
-                'pix': 'Pix',
-                'paypal': 'PayPal'
+                'mercadopago': 'Mercado Pago (Pix, Cartão, QR Code)'
             };
             document.getElementById('summary_payment_method').textContent = paymentMethodText[selectedPaymentMethod];
             document.getElementById('summary_total').textContent = 'R$ <?php echo number_format($total_price, 2, ',', '.'); ?>';
@@ -201,15 +159,6 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
             }
 
             document.getElementById('summary_address').textContent = addressText;
-
-            const paymentInputs = document.getElementById('payment_inputs_container');
-            paymentInputs.innerHTML = '';
-            if (selectedPaymentMethod === 'credit_card') {
-                paymentInputs.innerHTML += `<input type="hidden" name="numero_cartao" value="${document.getElementById('numero_cartao').value}">`;
-                paymentInputs.innerHTML += `<input type="hidden" name="nome_cartao" value="${document.getElementById('nome_cartao').value}">`;
-                paymentInputs.innerHTML += `<input type="hidden" name="validade" value="${document.getElementById('validade').value}">`;
-                paymentInputs.innerHTML += `<input type="hidden" name="cvv" value="${document.getElementById('cvv').value}">`;
-            }
 
             document.querySelectorAll('.checkout-step').forEach(stepDiv => stepDiv.style.display = 'none');
             document.getElementById('step-3').style.display = 'block';
@@ -282,7 +231,7 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
             map = L.map('map').setView(saoPaulo, 12);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
             marker = L.marker(saoPaulo, { draggable: true }).addTo(map)

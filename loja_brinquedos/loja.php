@@ -183,7 +183,7 @@ if (isset($_SESSION['user_codigo'])) {
 <body>
 
 <div class="header">
-    <img src="icone.png" alt="Logo da Playtopia" class="logo-loja">
+    <img src="logo.png" alt="Logo da Playtopia" class="logo-loja">
     
     <button id="cep-trigger" class="cep-trigger">
         <img src="cep.png" alt="CEP" height="20" width="20"/> 
@@ -202,7 +202,7 @@ if (isset($_SESSION['user_codigo'])) {
         <span class="welcome-message">Olá, <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</span>
         
         <?php if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'gerente'): ?>
-            <a href="administracao.php" class="admin-btn">Administração</a>
+            <a href="administracao.php" class="admin-btn"><img class ="admin-button" src="admin.png"></a>
         <?php endif; ?>
         
         <a href="logout.php" class="logout-btn">Sair</a>
@@ -220,13 +220,13 @@ if (isset($_SESSION['user_codigo'])) {
     </div>
   </div>
 </div>
-
-<div class="slideshow">
-    <img src="slide1.jpg" alt="Slide 1" class="slide active">
-    <img src="slide2.jpg" alt="Slide 2" class="slide">
-    <img src="slide3.jpg" alt="Slide 3" class="slide">
+<div class="cabecalho-background">
+    <div class="slideshow">
+        <img src="slide1.jpg" alt="Slide 1" class="slide active">
+        <img src="slide2.jpg" alt="Slide 2" class="slide">
+        <img src="slide3.jpg" alt="Slide 3" class="slide">
+    </div>
 </div>
-
 <div class="category-filters">
     <a href="loja.php" class="category-btn <?php echo (!isset($_GET['categoria_filtro'])) ? 'active' : ''; ?>">Todos</a>
     <?php foreach ($categorias as $categoria): ?>

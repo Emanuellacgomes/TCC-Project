@@ -1,173 +1,79 @@
 <?php
 session_start();
-require_once "db_connection.php";
+include "conexao.php";
 
-$status = "";
-$pedido_id = null;
-$total_price_posted = 0;
-$user_codigo = isset($_SESSION['user_codigo']) ? $_SESSION['user_codigo'] : null;
+// Usuário logado (exemplo fixo, depois troque pela sessão real)
+$usuario_id = 3;
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && $user_codigo) {
-    $payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : '';
-    $total_price_posted = floatval(str_replace(',', '.', $_POST['total_price']));
+// Dados de endereço vindos do pagamento.php
+$cep       = isset($_POST['cep']) ? $_POST['cep'] : null;
+$endereco  = isset($_POST['endereco']) ? $_POST['endereco'] : null;
+$cidade    = isset($_POST['cidade']) ? $_POST['cidade'] : null;
+$estado    = isset($_POST['estado']) ? $_POST['estado'] : null;
+$latitude  = isset($_POST['latitude']) ? $_POST['latitude'] : (isset($_POST['map_latitude']) ? $_POST['map_latitude'] : null);
+$longitude = isset($_POST['longitude']) ? $_POST['longitude'] : (isset($_POST['map_longitude']) ? $_POST['map_longitude'] : null);
 
-    $is_payment_approved = false;
+// Buscar itens do carrinho do usuário
+$sql = "SELECT c.codigo_brinquedo, c.quantidade, b.nome, b.preco 
+        FROM carrinho_usuario c
+        JOIN brinquedos b ON c.codigo_brinquedo = b.codigo
+        WHERE c.id_usuario = $usuario_id";
+$res = mysqli_query($conn, $sql);
 
-    // Simulação da lógica de pagamento
-    if ($payment_method === 'credit_card') {
-        $numero_cartao = $_POST['numero_cartao'];
-        $nome_cartao = $_POST['nome_cartao'];
-        $cvv = $_POST['cvv'];
+if (!$res || mysqli_num_rows($res) == 0) {
+    die("Carrinho vazio!");
+}
 
-        if (
-            strpos($numero_cartao, '4000') === 0 &&
-            strpos($nome_cartao, 'APROVADO') !== false &&
-            $cvv === '123'
-        ) {
-            $is_payment_approved = true;
-        }
-    } elseif ($payment_method === 'pix' || $payment_method === 'paypal') {
-        $is_payment_approved = true;
-    }
+// Calcular valor total e armazenar os itens
+$valor_total = 0;
+$items = array();
+while ($row = mysqli_fetch_assoc($res)) {
+    $valor_total += $row['preco'] * $row['quantidade'];
+    $items[] = $row;
+}
 
-    if ($is_payment_approved) {
-        $conn->query("START TRANSACTION");
-        $transaction_success = true;
-        
-        // 1. Inserir um novo pedido na tabela de pedidos
-        $sql_pedido = "INSERT INTO pedidos (id_usuario, data_pedido, valor_total) VALUES (?, NOW(), ?)";
-        $stmt_pedido = $conn->prepare($sql_pedido);
-        if ($stmt_pedido) {
-            $stmt_pedido->bind_param("id", $user_codigo, $total_price_posted);
-            if (!$stmt_pedido->execute()) {
-                $status = "Erro ao executar a inserção do pedido: " . $stmt_pedido->error;
-                $transaction_success = false;
-            }
-            $pedido_id = $stmt_pedido->insert_id;
-            $stmt_pedido->close();
-        } else {
-            $status = "Erro ao preparar a inserção do pedido: " . $conn->error;
-            $transaction_success = false;
-        }
+// Criar o pedido com status "pendente"
+$data = date("Y-m-d H:i:s");
+$sql_pedido = "INSERT INTO pedidos (id_usuario, data_pedido, valor_total, status_pagamento) 
+               VALUES ($usuario_id, '$data', $valor_total, 'pendente')";
+if (!mysqli_query($conn, $sql_pedido)) {
+    die("Erro ao criar pedido: " . mysqli_error($conn));
+}
+$pedido_id = mysqli_insert_id($conn);
 
-        if ($transaction_success && $pedido_id) {
-            // 2. Mover itens do carrinho para a tabela de detalhes do pedido e dar baixa no estoque
-            $sql_cart_items = "SELECT codigo_brinquedo, quantidade FROM carrinho_usuario WHERE id_usuario = ?";
-            $stmt_cart_items = $conn->prepare($sql_cart_items);
-
-            if (!$stmt_cart_items) {
-                $status = "Erro ao preparar a busca por itens do carrinho: " . $conn->error;
-                $transaction_success = false;
-            } else {
-                $stmt_cart_items->bind_param("i", $user_codigo);
-                if (!$stmt_cart_items->execute()) {
-                    $status = "Erro ao executar a busca por itens do carrinho: " . $stmt_cart_items->error;
-                    $transaction_success = false;
-                }
-                $result_cart_items = $stmt_cart_items->get_result();
-
-                // CORRIGIDO: Removido preco_unitario da consulta, pois a tabela não possui essa coluna
-                $sql_insert_item = "INSERT INTO itens_pedido (id_pedido, codigo_brinquedo, quantidade) VALUES (?, ?, ?)";
-                $stmt_insert_item = $conn->prepare($sql_insert_item);
-                
-                $sql_update_stock = "UPDATE brinquedos SET estoque = estoque - ? WHERE codigo = ?";
-                $stmt_update_stock = $conn->prepare($sql_update_stock);
-
-                if (!$stmt_insert_item) {
-                     $status = "Erro ao preparar a query de inserção de itens: " . $conn->error;
-                     $transaction_success = false;
-                } elseif (!$stmt_update_stock) {
-                     $status = "Erro ao preparar a query de baixa de estoque: " . $conn->error;
-                     $transaction_success = false;
-                } else {
-                    while ($item = $result_cart_items->fetch_assoc()) {
-                        $codigo_brinquedo = $item['codigo_brinquedo'];
-                        $quantidade_comprada = $item['quantidade'];
-                        
-                        // CORRIGIDO: bind_param agora tem 3 parâmetros, para id_pedido, codigo_brinquedo e quantidade
-                        $stmt_insert_item->bind_param("iii", $pedido_id, $codigo_brinquedo, $quantidade_comprada);
-                        if (!$stmt_insert_item->execute()) {
-                            $status = "Erro ao executar a inserção do item do pedido: " . $stmt_insert_item->error;
-                            $transaction_success = false;
-                            break;
-                        }
-                        
-                        $stmt_update_stock->bind_param("ii", $quantidade_comprada, $codigo_brinquedo);
-                        if (!$stmt_update_stock->execute()) {
-                            $status = "Erro ao executar a baixa no estoque: " . $stmt_update_stock->error;
-                            $transaction_success = false;
-                            break;
-                        }
-                    }
-                }
-
-                $stmt_cart_items->close();
-                if ($stmt_insert_item) $stmt_insert_item->close();
-                if ($stmt_update_stock) $stmt_update_stock->close();
-            }
-
-            // 3. Limpar o carrinho do usuário, somente se a transação foi bem-sucedida até aqui
-            if ($transaction_success) {
-                $sql_clear_cart = "DELETE FROM carrinho_usuario WHERE id_usuario = ?";
-                $stmt_clear = $conn->prepare($sql_clear_cart);
-                if ($stmt_clear) {
-                    $stmt_clear->bind_param("i", $user_codigo);
-                    if (!$stmt_clear->execute()) {
-                        $status = "Erro ao executar a limpeza do carrinho: " . $stmt_clear->error;
-                        $transaction_success = false;
-                    }
-                    $stmt_clear->close();
-                } else {
-                    $status = "Erro ao preparar a limpeza do carrinho: " . $conn->error;
-                    $transaction_success = false;
-                }
-            } else {
-                $status = $status; // mantém o erro específico já capturado
-            }
-
-        } else {
-            if (empty($status)) {
-                $status = "Erro: O pedido não pôde ser criado.";
-            }
-        }
-
-        if ($transaction_success) {
-            $conn->query("COMMIT");
-            $status = "<div class='box success-message'>Pagamento APROVADO! Redirecionando para a loja.</div>";
-        } else {
-            $conn->query("ROLLBACK");
-            if (empty($status)) {
-                $status = "<div class='box error-message'>Erro no processamento do pedido. Por favor, tente novamente mais tarde.</div>";
-            } else {
-                 $status = "<div class='box error-message'>" . $status . "</div>";
-            }
-        }
-
-    } else {
-        $status = "<div class='box error-message'>Pagamento RECUSADO. Por favor, verifique os dados ou tente novamente.</div>";
+// Inserir itens do pedido
+foreach ($items as $item) {
+    $codigo_brinquedo = $item['codigo_brinquedo'];
+    $quantidade = $item['quantidade'];
+    $sql_item = "INSERT INTO itens_pedido (id_pedido, codigo_brinquedo, quantidade) 
+                 VALUES ($pedido_id, $codigo_brinquedo, $quantidade)";
+    if (!mysqli_query($conn, $sql_item)) {
+        // não interrompe o fluxo, só coloca no log (mas você pode tratar melhor)
+        error_log("Erro inserindo item pedido: " . mysqli_error($conn));
     }
 }
+
+// Montar endereço final
+$endereco_final = "";
+if ($cep || $endereco || $cidade || $estado) {
+    $endereco_final = "$endereco, $cidade - $estado, CEP: $cep";
+} elseif ($latitude && $longitude) {
+    $endereco_final = "Localização: $latitude, $longitude";
+} else {
+    $endereco_final = "Endereço não informado";
+}
+
+// Inserir na tabela de entregas (crie a tabela entregas se necessário)
+$sql_entrega = "INSERT INTO entregas (id_pedido, endereco_destino, status) 
+                VALUES ($pedido_id, '" . mysqli_real_escape_string($conn, $endereco_final) . "', 'aguardando_coleta')";
+if (!mysqli_query($conn, $sql_entrega)) {
+    error_log("Erro inserindo entrega: " . mysqli_error($conn));
+}
+
+// Limpar o carrinho do usuário
+mysqli_query($conn, "DELETE FROM carrinho_usuario WHERE id_usuario = $usuario_id");
+
+// ✅ Redirecionar para o checkout.php (pedido criado com status pendente)
+header("Location: checkout.php?pedido_id=$pedido_id");
+exit;
 ?>
-
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Resultado do Pagamento</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="icone.png" type="image/png">
-</head>
-<body>
-
-<div class="header">
-    <img src="icone.png" alt="Logo da Playtopia" class="logo-loja">
-    <a href="loja.php" class="back-to-shop-btn">Ir para a Loja</a>
-</div>
-
-<div class="cart-container">
-    <h2>Resultado do Pagamento</h2>
-    <?php echo $status; ?>
-</div>
-
-</body>
-</html>
