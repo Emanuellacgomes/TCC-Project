@@ -16,23 +16,25 @@ if (!$res || mysqli_num_rows($res) == 0) {
 }
 $pedido = mysqli_fetch_assoc($res);
 
-// Buscar itens do pedido
+// Buscar itens do pedido (Esta busca é mantida apenas para fins de debug e histórico)
 $sql_itens = "SELECT i.*, b.nome, b.preco 
               FROM itens_pedido i 
               JOIN brinquedos b ON i.codigo_brinquedo=b.codigo
               WHERE i.id_pedido=$pedido_id";
 $res_itens = mysqli_query($conn, $sql_itens);
 
-$items = array();
-while ($row = mysqli_fetch_assoc($res_itens)) {
-    $items[] = array(
-        "id" => $row["codigo_brinquedo"],
-        "title" => $row["nome"],
-        "quantity" => intval($row["quantidade"]),
-        "unit_price" => floatval($row["preco"]),
+// *** CORREÇÃO CRUCIAL: ENVIAR O VALOR FINAL (COM DESCONTO) COMO UM ITEM ÚNICO ***
+// O valor $pedido['valor_total'] lido do banco JÁ CONTÉM O DESCONTO.
+
+$items = array(
+    array(
+        "id" => "PEDIDO-" . $pedido_id, // Identificador do pedido
+        "title" => "Compra Playtopia - Pedido #".$pedido_id,
+        "quantity" => 1,
+        "unit_price" => floatval($pedido['valor_total']), // <<-- VALOR COM DESCONTO
         "currency_id" => "BRL"
-    );
-}
+    )
+);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -44,6 +46,7 @@ while ($row = mysqli_fetch_assoc($res_itens)) {
 <body>
 <div class="checkout-container">
     <h2>Aguarde, estamos redirecionando para o Mercado Pago...</h2>
+    <p>Valor final (com desconto): R$ <?php echo number_format($pedido['valor_total'], 2, ',', '.'); ?></p>
 </div>
 
 <script>
@@ -52,9 +55,9 @@ while ($row = mysqli_fetch_assoc($res_itens)) {
         items: <?php echo json_encode($items); ?>,
         external_reference: "<?php echo $pedido_id; ?>",
         back_urls: {
-            success: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/retorno_sucesso.php",
-            failure: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/retorno_erro.php",
-            pending: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/retorno_pendente.php"
+            success: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/retorno_processar.php",
+            failure: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/retorno_processar.php",
+            pending: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/retorno_processar.php"
         },
         auto_return: "approved",
         notification_url: "https://dudley-mudfat-anastasia.ngrok-free.dev/loja_brinquedos/notification.php",
@@ -69,7 +72,7 @@ while ($row = mysqli_fetch_assoc($res_itens)) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": "Bearer APP_USR-5880562592274061-100112-8ecca3eaff0ff2aff31c493116724eb8-2725312304" // ⚠️ substitua pelo access_token TESTE/PRODUÇÃO
+                "Authorization": "Bearer APP_USR-5880562592274061-100112-8ecca3eaff0ff2aff31c493116724eb8-2725312304"
             },
             body: JSON.stringify(preferenceData)
         });

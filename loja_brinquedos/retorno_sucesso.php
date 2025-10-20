@@ -12,7 +12,7 @@ session_start();
 <div class="checkout-container">
     <h2>🎉 Pagamento aprovado!</h2>
     <p>Seu pedido foi registrado com sucesso. Obrigado por comprar conosco!</p>
-    <a href="index.php" class="back-to-shop-btn">Voltar à loja</a>
+    <a href="loja.php" class="back-to-shop-btn">Voltar à loja</a>
 </div>
 </body>
 </html>

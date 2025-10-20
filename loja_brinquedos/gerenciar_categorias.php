@@ -77,7 +77,7 @@ $categorias = $result_categorias->fetch_all(MYSQLI_ASSOC);
 
 <div class="header">
     <a href="loja.php">
-        <img src="icone.png" alt="Logo da Playtopia" class="logo-loja">
+        <img src="logo.png" alt="Logo da Playtopia" class="logo-loja-adm">
     </a>
     <div class="user-actions">
         <span class="welcome-message">Olá, <?php echo htmlspecialchars($_SESSION['user_name']); ?>!</span>

@@ -104,7 +104,7 @@ $result_fabricantes = $conn->query($sql_fabricantes);
 
 <div class="header">
     <a href="loja.php">
-        <img src="icone.png" alt="Logo da Loja de Brinquedos" class="logo-loja">
+        <img src="logo.png" alt="Logo da Loja de Brinquedos" class="logo-loja-adm">
     </a>
     <div class="user-actions">
         <span class="welcome-message">Olá, Gerente!</span>

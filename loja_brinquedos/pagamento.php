@@ -24,8 +24,8 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
 <body>
 
 <div class="header">
-    <img src="icone.png" alt="Logo da Playtopia" class="logo-loja">
-    <a href="carrinho.php" class="back-to-shop-btn">Voltar para o Carrinho</a>
+    <img src="logo.png" alt="Logo da Playtopia" class="logo-loja">
+    <a href="carrinho.php" class="back-to-shop-btn-cart">Voltar para o Carrinho</a>
 </div>
 
 <div class="checkout-container">
@@ -41,9 +41,9 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
         <div class="payment-method">
             <div class="payment-options">
                 <div class="payment-option selected">
-                    <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-library/mercado-pago.svg" 
+                    <img src="mercadopago-logo.png" 
                          alt="Mercado Pago" style="width:80px;">
-                    <span>Mercado Pago (Pix, Cartão, QR Code)</span>
+                    <span>Mercado Pago (Cartão de Crédito, Saldo na conta)</span>
                 </div>
             </div>
 
@@ -66,16 +66,103 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
         </div>
 
         <form id="address_form" onsubmit="return goToStep(3)">
-            <div id="manual_form" style="display:none;">
-                <label for="cep">CEP:</label>
-                <input type="text" id="cep" name="cep" placeholder="00000-000">
-                <label for="endereco">Endereço:</label>
-                <input type="text" id="endereco" name="endereco" placeholder="Rua, Av.">
-                <label for="cidade">Cidade:</label>
-                <input type="text" id="cidade" name="cidade" placeholder="Cidade">
-                <label for="estado">Estado:</label>
-                <input type="text" id="estado" name="estado" placeholder="Estado">
-            </div>
+        <div id="manual_form" style="display:none;">
+    <label for="cep">CEP:</label>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <input 
+            type="text" 
+            id="cep" 
+            name="cep" 
+            placeholder="00000-000" 
+            maxlength="9" 
+            onblur="buscarCEP()" 
+            style="flex:1;"
+            value="<?php echo isset($_SESSION['cep_usuario']) ? htmlspecialchars($_SESSION['cep_usuario']) : ''; ?>">
+        <div id="cep-loading" style="display:none;">
+            <span style="font-size:12px; color:#555;">🔄 Buscando...</span>
+        </div>
+    </div>
+
+    <label for="endereco">Endereço:</label>
+    <input type="text" id="endereco" name="endereco" placeholder="Rua, Av." 
+           value="<?php echo isset($_SESSION['endereco_usuario']) ? htmlspecialchars($_SESSION['endereco_usuario']) : ''; ?>">
+
+    <label for="bairro">Bairro:</label>
+    <input type="text" id="bairro" name="bairro" placeholder="Bairro" 
+           value="<?php echo isset($_SESSION['bairro_usuario']) ? htmlspecialchars($_SESSION['bairro_usuario']) : ''; ?>">
+
+    <label for="cidade">Cidade:</label>
+    <input type="text" id="cidade" name="cidade" placeholder="Cidade" 
+           value="<?php echo isset($_SESSION['cidade_usuario']) ? htmlspecialchars($_SESSION['cidade_usuario']) : ''; ?>">
+
+    <label for="estado">Estado:</label>
+    <input type="text" id="estado" name="estado" placeholder="Estado" 
+           value="<?php echo isset($_SESSION['estado_usuario']) ? htmlspecialchars($_SESSION['estado_usuario']) : ''; ?>">
+
+    <div id="cep-status" style="margin-top:6px; font-size:13px; color:#555;"></div>
+</div>
+
+<script>
+function buscarCEP() {
+    const cepInput = document.getElementById('cep');
+    const cep = cepInput.value.replace(/\D/g, '');
+    const statusDiv = document.getElementById('cep-status');
+    const loading = document.getElementById('cep-loading');
+
+    if (cep.length !== 8) {
+        statusDiv.textContent = "❌ CEP inválido. Digite 8 números.";
+        return;
+    }
+
+    loading.style.display = "inline";
+    statusDiv.textContent = "";
+
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = "none";
+
+            if (!data.erro) {
+                document.getElementById('endereco').value = data.logradouro || '';
+                document.getElementById('bairro').value = data.bairro || '';
+                document.getElementById('cidade').value = data.localidade || '';
+                document.getElementById('estado').value = data.uf || '';
+
+                // Bloqueia cidade e estado apenas se CEP foi digitado
+                document.getElementById('cidade').readOnly = true;
+                document.getElementById('estado').readOnly = true;
+                document.getElementById('cidade').style.background = '#f5f5f5';
+                document.getElementById('estado').style.background = '#f5f5f5';
+
+                statusDiv.innerHTML = "✅ Endereço carregado automaticamente.";
+                statusDiv.style.color = "green";
+            } else {
+                statusDiv.innerHTML = "❌ CEP não encontrado.";
+                statusDiv.style.color = "red";
+            }
+        })
+        .catch(() => {
+            loading.style.display = "none";
+            statusDiv.innerHTML = "⚠️ Erro ao buscar CEP. Tente novamente.";
+            statusDiv.style.color = "orange";
+        });
+}
+
+// Se já houver CEP vindo da sessão, bloqueia os campos cidade e estado
+window.addEventListener("DOMContentLoaded", function() {
+    const cep = document.getElementById('cep').value;
+    const cidade = document.getElementById('cidade');
+    const estado = document.getElementById('estado');
+
+    if (cep && cep.trim() !== "") {
+        cidade.readOnly = true;
+        estado.readOnly = true;
+        cidade.style.background = '#f5f5f5';
+        estado.style.background = '#f5f5f5';
+    }
+});
+</script>
+
             
             <div id="geolocation_info" style="display:none;">
                 <p>Aguardando sua permissão para usar a localização...</p>
@@ -108,7 +195,7 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
     <!-- Formulário Hidden que vai para processar_pagamento.php -->
     <form id="checkout_form" action="processar_pagamento.php" method="POST">
         <input type="hidden" id="payment_method_input" name="payment_method" value="mercadopago">
-        <input type="hidden" id="total_price_input" name="total_price" value="<?php echo htmlspecialchars(str_replace('.', ',', $total_price)); ?>">
+        <input type="hidden" id="total_price_input" name="total_price" value="<?php echo isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] : $total_price; ?>">
         <div id="address_inputs_container"></div>
     </form>
 </div>

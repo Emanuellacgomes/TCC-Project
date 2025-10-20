@@ -1,15 +1,18 @@
 <?php
 session_start();
 require_once "db_connection.php";
-
+$show_lgpd_popup = !isset($_COOKIE['consent_lgpd']); 
 $status = "";
 
 // Lógica para definir o CEP do usuário no cookie
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['cep'])) {
+    $origem = isset($_POST['origem']) && $_POST['origem'] === 'auto' ? 'auto' : 'manual';
     setcookie('cep_usuario', $_POST['cep'], time() + (86400 * 30), "/"); 
+    setcookie('cep_origem', $origem, time() + (86400 * 30), "/");
     header("Location: loja.php");
     exit();
 }
+
 
 // Lógica para buscar detalhes do produto via AJAX
 if (isset($_GET['action']) && $_GET['action'] === 'get_product_details' && isset($_GET['codigo'])) {
@@ -25,8 +28,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_product_details' && isset
         $dados_brinquedo['frete_status'] = 'Informe seu CEP para calcular o frete.';
         $dados_brinquedo['desconto_porcentagem'] = null;
 
-        if ($cep_usuario) {
-            $dados_brinquedo['frete_status'] = 'Entrega para o CEP ' . $cep_usuario . '. Frete grátis para compras acima de R$100,00.';
+        $cep_origem = isset($_COOKIE['cep_origem']) ? $_COOKIE['cep_origem'] : 'manual';
+
+        if ($cep_usuario && $cep_origem === 'auto') {
+
+            $dados_brinquedo['frete_status'] = 'Entrega para o CEP ' . $cep_usuario;
 
             $cep_limpo = str_replace('-', '', $cep_usuario);
             
@@ -267,28 +273,32 @@ if (isset($_SESSION['user_codigo'])) {
             
             // NOVO: Pega o CEP do usuário para checar o desconto
             $cep_usuario_logado = isset($_COOKIE['cep_usuario']) ? $_COOKIE['cep_usuario'] : null;
+            $cep_origem = isset($_COOKIE['cep_origem']) ? $_COOKIE['cep_origem'] : 'manual';
 
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    
-                    $porcentagem_desconto = 0;
-                    if ($cep_usuario_logado) {
-                        $cep_limpo = str_replace('-', '', $cep_usuario_logado);
-                        $sql_desconto = "SELECT porcentagem_desconto FROM descontos_cep WHERE REPLACE(cep_prefixo, '-', '') = ?";
-                        $stmt_desconto = $conn->prepare($sql_desconto);
-                        
-                        if ($stmt_desconto) {
-                            $stmt_desconto->bind_param("s", $cep_limpo);
-                            $stmt_desconto->execute();
-                            $result_desconto = $stmt_desconto->get_result();
-                            $desconto_row = $result_desconto->fetch_assoc();
-                            $stmt_desconto->close();
-                            
-                            if ($desconto_row) {
-                                $porcentagem_desconto = floatval($desconto_row['porcentagem_desconto']);
-                            }
-                        }
-                    }
+        
+                        $porcentagem_desconto = 0;
+
+                    // ✅ Só aplica desconto se o CEP for obtido automaticamente
+                if ($cep_usuario_logado && $cep_origem === 'auto') {
+                    $cep_limpo = str_replace('-', '', $cep_usuario_logado);
+                    $sql_desconto = "SELECT porcentagem_desconto FROM descontos_cep WHERE REPLACE(cep_prefixo, '-', '') = ?";
+                    $stmt_desconto = $conn->prepare($sql_desconto);
+            
+                if ($stmt_desconto) {
+                    $stmt_desconto->bind_param("s", $cep_limpo);
+                    $stmt_desconto->execute();
+                    $result_desconto = $stmt_desconto->get_result();
+                    $desconto_row = $result_desconto->fetch_assoc();
+                    $stmt_desconto->close();
+                
+                if ($desconto_row) {
+                    $porcentagem_desconto = floatval($desconto_row['porcentagem_desconto']);
+                }
+            }
+        }
+
 
                     $preco_original = $row['preco'];
                     $preco_exibido = $preco_original;
@@ -349,7 +359,53 @@ if (isset($_SESSION['user_codigo'])) {
         }
         ?>
     </div>
-    
+    <?php if ($show_lgpd_popup): ?>
+    <div id="lgpd-banner" class="lgpd-popup"> 
+    <div class="lgpd-content">
+        <h4>Aviso de Privacidade - Playtopia</h4>
+        <p>Utilizamos biscoitinhos essenciais! (carrinho, localização) e biscoitinhos opcionais para melhorar sua experiência e personalização!</p>
+        <div class="lgpd-buttons">
+            <button id="accept-lgpd-btn" class="lgpd-btn">Aceitar e Continuar</button>
+            <button id="close-lgpd-btn" class="lgpd-btn-secondary">Apenas Essenciais</button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+    // Função helper para definir cookies
+    function setCookie(name, value, days) {
+        var expires = "";
+        if (days) {
+            var date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+
+    // Botão: Aceitar Tudo (Full Consentimento)
+    document.getElementById('accept-lgpd-btn').addEventListener('click', function() {
+        // Verifica se o checkbox de dados opcionais foi marcado
+        var optional_consent = document.getElementById('optional-data-consent').checked ? 'full' : 'basic';
+        
+        // 1. Seta o cookie principal (para não mostrar mais o popup)
+        setCookie('consent_lgpd', 'accepted', 365); 
+        
+        // 2. Seta o cookie para o consentimento opcional
+        setCookie('consent_optional_data', optional_consent, 365); 
+        
+        document.getElementById('lgpd-banner').style.display = 'none';
+    });
+
+    // Botão: Apenas Essenciais
+    document.getElementById('close-lgpd-btn').addEventListener('click', function() {
+        // Aceita apenas os cookies essenciais
+        setCookie('consent_lgpd', 'accepted_basic', 365);
+        setCookie('consent_optional_data', 'basic', 365); // Nega o uso de dados opcionais
+        document.getElementById('lgpd-banner').style.display = 'none';
+    });
+</script>
     <div id="product-details-modal" class="product-details-modal">
         <div class="modal-content-details">
             <button class="close-details-btn">&times;</button>
@@ -412,7 +468,6 @@ if (isset($_SESSION['user_codigo'])) {
                     <?php if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'gerente'): ?>
                         <li><a href="administracao.php">Administração</a></li>
                     <?php endif; ?>
-                    <li><a href="#">Contato</a></li>
                 </ul>
             </div>
             <div class="footer-section">
@@ -472,18 +527,26 @@ document.addEventListener('DOMContentLoaded', function() {
         cepModal.style.display = 'none';
     }
 
-    function setCepAndReload(cep) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = 'loja.php';
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'cep';
-        input.value = cep;
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
-    }
+    function setCepAndReload(cep, origem = 'manual') {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'loja.php';
+
+    const inputCep = document.createElement('input');
+    inputCep.type = 'hidden';
+    inputCep.name = 'cep';
+    inputCep.value = cep;
+    form.appendChild(inputCep);
+
+    const inputOrigem = document.createElement('input');
+    inputOrigem.type = 'hidden';
+    inputOrigem.name = 'origem';
+    inputOrigem.value = origem;
+    form.appendChild(inputOrigem);
+
+    document.body.appendChild(form);
+    form.submit();
+}
 
     cepTrigger.addEventListener('click', openCepModal);
     closeCepModalBtn.addEventListener('click', closeCepModal);
@@ -542,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const cidade = address.city;
                     const estado = address.state;
                     exibirStatus(cepAutoStatus, 'Sua localização foi detectada! Cidade: ' + cidade + ', Estado: ' + estado + '. CEP: ' + cepEncontrado, 'success');
-                    setCepAndReload(cepEncontrado);
+                    setCepAndReload(cepEncontrado, 'auto');
                 } else {
                     exibirStatus(cepAutoStatus, 'Não foi possível encontrar um CEP para sua localização. Por favor, digite manualmente.', 'error');
                 }
