@@ -1,0 +1,14 @@
+Numero do Cartão: 5031 4332 1540 6351
+
+CVV: 123
+
+Data Vencimento: 11/30
+
+Nome do Titular para pagamento aprovado: APRO
+
+CPF: 123.456.789-09
+
+E-mail: comprador_teste_654321@testuser.com
+
+Nome do Titular para pagamento pendente: CONT
+Nome do Titular para pagamento erro: OTHE

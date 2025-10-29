@@ -462,7 +462,7 @@
     background-color: #3c78d8;
 }
 .admin-btn {
-    background-color: #4CAF50; /* Um tom de verde para destacar */
+    background-color: #4285f4; /* Um tom de verde para destacar */
     color: white;
     padding: 10px 15px;
     text-decoration: none;
@@ -472,7 +472,7 @@
 }
 
 .admin-btn:hover {
-    background-color: #45a049;
+    background-color: #3c78d8;
 }
 .admin-container {
     max-width: 900px;
@@ -2891,7 +2891,7 @@ html {
 }
 
 .admin-btn {
-    background-color: #4CAF50;
+    background-color: #4285f4;
     color: var(--light-bg);
     padding: 10px 15px;
     text-decoration: none;
@@ -2901,7 +2901,7 @@ html {
 }
 
 .admin-btn:hover {
-    background-color: #45a049;
+    background-color: #3c78d8;
 }
 
 /* --- Estilos para o Rodapé --- */

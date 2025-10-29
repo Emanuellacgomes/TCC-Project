@@ -128,7 +128,7 @@ if (!empty($whereClause)) {
 }
 
 // Lógica de Paginação
-$limit = 8;
+$limit = 12;
 $currentPage = isset($_GET['pagina']) && is_numeric($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
 $offset = ($currentPage - 1) * $limit;
 
@@ -231,6 +231,8 @@ if (isset($_SESSION['user_codigo'])) {
         <img src="slide1.jpg" alt="Slide 1" class="slide active">
         <img src="slide2.jpg" alt="Slide 2" class="slide">
         <img src="slide3.jpg" alt="Slide 3" class="slide">
+        <img src="slide4.jpg" alt="Slide 4" class="slide">
+        <img src="slide5.jpg" alt="Slide 5" class="slide">
     </div>
 </div>
 <div class="category-filters">
