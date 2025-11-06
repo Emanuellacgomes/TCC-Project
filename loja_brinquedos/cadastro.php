@@ -36,8 +36,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $status = "<div class='box' style='color:red;'>Erro ao cadastrar usuário.</div>";
             }
         }
-        $stmt_check->close();
-        $stmt->close();
+        // Fechar statements de forma segura
+        if (isset($stmt_check)) $stmt_check->close();
+        if (isset($stmt)) $stmt->close();
     }
 }
 ?>
@@ -55,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php if (isset($status) && $status != ""): ?>
         <div class="message-box box"><?php echo $status; ?></div>
     <?php endif; ?>
-    <form action="cadastro.php" method="POST">
+    <form action="cadastro.php" method="POST" class="cadastro-form"> 
         <label for="nome">Nome Completo:</label>
         <input type="text" id="nome" name="nome" required>
 
@@ -71,8 +72,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <button type="submit">Cadastrar</button>
     </form>
     <p class="register-link">
-        Já tem uma conta? <a href="login.php">Fazer Login</a>
+        Já tem uma conta? <a href="login.php" id="login-link">Fazer Login</a>
     </p>
 </div>
+
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // VARIÁVEIS ESSENCIAIS
+    const preloader = document.getElementById('preloader');
+    
+    // VARIÁVEIS DE AÇÃO
+    const cadastroForm = document.querySelector('.cadastro-form');
+    const loginLink = document.getElementById('login-link');
+
+    // 1. FUNÇÕES DO PRELOADER
+    function showPreloader() {
+        if (preloader) {
+            preloader.style.display = 'flex';
+        }
+    }
+    
+    function hidePreloader() {
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    }
+
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR (BFCache)
+    window.addEventListener('pageshow', function(event) {
+        // Se a página foi restaurada do cache (botão Voltar), esconde o preloader
+        if (event.persisted) {
+            hidePreloader();
+        }
+    });
+    
+    // Garante que o preloader comece escondido
+    hidePreloader(); 
+
+    // --- LISTENERS DE AÇÃO ---
+
+    // 3. LISTENER DE FORMULÁRIO (Cadastro)
+    if (cadastroForm) {
+        // Usamos o 'submit' para capturar a submissão do formulário
+        cadastroForm.addEventListener('submit', showPreloader);
+    }
+    
+    // 4. LISTENER DE LINK (Ir para Login)
+    if (loginLink) {
+        loginLink.addEventListener('click', showPreloader);
+    }
+});
+</script>
 </body>
 </html>

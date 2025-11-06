@@ -541,6 +541,11 @@ document.addEventListener('DOMContentLoaded', function() {
             preloader.style.display = 'flex';
         }
     }
+    function hidePreloader() {
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    }
     // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
     // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
     window.addEventListener('pageshow', function(event) {
@@ -598,6 +603,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const adminBtn = document.querySelector('.admin-btn');
     if (adminBtn) {
         adminBtn.addEventListener('click', showPreloader);
+    }
+
+    const login2Btn = document.querySelector('.login-btn-modal');
+    if (login2Btn) {
+        login2Btn.addEventListener('click', showPreloader);
     }
 
     // LISTENER 8: Ativar ao clicar no link de Logar (login.php)

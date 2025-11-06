@@ -64,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         <?php unset($_SESSION['registration_success']); ?>
     <?php endif; ?>
 
-    <form action="login.php" method="POST">
+    <form action="login.php" method="POST" class="login-form"> 
         <label for="email">Email:</label>
         <input type="email" id="email" name="email" required>
         
@@ -75,47 +75,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     </form>
     
     <p class="register-link">
-        Não tem uma conta? <a href="cadastro.php">Crie uma aqui</a>
+        Não tem uma conta? <a href="cadastro.php" id="cadastro-link">Crie uma aqui</a>
     </p>
 </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-    // VARIÁVEL ESSENCIAL
-    const preloader = document.getElementById('preloader');
 
-    // Função global para mostrar o preloader
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // VARIÁVEIS ESSENCIAIS
+    const preloader = document.getElementById('preloader');
+    
+    // VARIÁVEIS DE AÇÃO
+    const loginForm = document.querySelector('.login-form');
+    const cadastroLink = document.getElementById('cadastro-link');
+
+    // 1. FUNÇÕES DO PRELOADER
     function showPreloader() {
         if (preloader) {
             preloader.style.display = 'flex';
         }
     }
     
-    // LISTENER 11: Ativar ao clicar no link de Logar (login.php)
-    const entrarBtn = document.querySelector('.entrar-btn');
-    if (entrarBtn) {
-        entrarBtn.addEventListener('click', showPreloader);
-    }
     function hidePreloader() {
         if (preloader) {
             preloader.style.display = 'none';
         }
     }
-    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
-    // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
+
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR (BFCache)
     window.addEventListener('pageshow', function(event) {
-        // Se a propriedade persisted for true, a página foi restaurada do cache.
+        // Se a página foi restaurada do cache (botão Voltar), esconde o preloader
         if (event.persisted) {
             hidePreloader();
         }
     });
     
-    // Garante que o preloader esteja escondido por padrão ao carregar
-    hidePreloader();
+    // Garante que o preloader comece escondido
+    hidePreloader(); 
 
+    // --- LISTENERS DE AÇÃO ---
+
+    // 3. LISTENER DE FORMULÁRIO (Login)
+    if (loginForm) {
+        // Usamos o 'submit' para capturar a submissão do formulário
+        loginForm.addEventListener('submit', showPreloader);
+    }
+    
+    // 4. LISTENER DE LINK (Ir para Cadastro)
+    if (cadastroLink) {
+        cadastroLink.addEventListener('click', showPreloader);
+    }
 });
 </script>
-<div id="preloader" class="preloader-overlay" style="display: none;">
-    <div class="spinner-border"></div>
-</div>
 </body>
 </html>

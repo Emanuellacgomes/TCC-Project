@@ -201,6 +201,10 @@ document.addEventListener('DOMContentLoaded', function() {
             preloader.style.display = 'flex';
         }
     }
+    const checkoutBtn = document.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', showPreloader);
+    }
     // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
     // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
     window.addEventListener('pageshow', function(event) {
@@ -213,10 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Garante que o preloader esteja escondido por padrão ao carregar
     hidePreloader();
     // LISTENER 10: Ativar ao clicar no link de Continuar Pagamento (pagamento.php)
-    const checkoutBtn = document.querySelector('.checkout-btn');
-    if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', showPreloader);
-    }
 });
 </script>
 <div id="preloader" class="preloader-overlay" style="display: none;">
