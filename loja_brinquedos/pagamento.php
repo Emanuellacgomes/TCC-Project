@@ -22,7 +22,57 @@ $total_price = isset($_SESSION['total_carrinho']) ? $_SESSION['total_carrinho'] 
     </style>
 </head>
 <body>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // VARIÁVEIS ESSENCIAIS
+    const preloader = document.getElementById('preloader');
+    const confirmBtn = document.getElementById('confirm-payment-btn');
 
+    // 1. FUNÇÃO PARA MOSTRAR O PRELOADER (AGORA DEFINIDA AQUI)
+    function showPreloader() {
+        if (preloader) {
+            preloader.style.display = 'flex';
+        }
+    }
+
+    // 2. LISTENERS DE EVENTO (Solução robusta e correta)
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            // 1. Ativa o Preloader
+            showPreloader();
+            
+            // 2. Chama a função original que inicia o checkout (Mercado Pago)
+            // Usamos 'typeof' para evitar um erro caso ela não tenha carregado
+            if (typeof submitCheckout === 'function') {
+                submitCheckout();
+            } else {
+                console.error("submitCheckout function is not defined. The preloader is active.");
+            }
+        });
+    }
+    function hidePreloader() {
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    }
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
+    // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
+    window.addEventListener('pageshow', function(event) {
+        // Se a propriedade persisted for true, a página foi restaurada do cache.
+        if (event.persisted) {
+            hidePreloader();
+        }
+    });
+    
+    // Garante que o preloader esteja escondido por padrão ao carregar
+    hidePreloader();
+
+
+    // Se você tiver outros scripts de checkout em pagamento.php, 
+    // certifique-se de que estejam neste mesmo bloco DOMContentLoaded.
+    
+});
+</script>
 <div class="header">
     <img src="logo.png" alt="Logo da Playtopia" class="logo-loja">
     <a href="carrinho.php" class="back-to-shop-btn-cart">Voltar para o Carrinho</a>
@@ -188,7 +238,7 @@ window.addEventListener("DOMContentLoaded", function() {
             <p>Forma de Pagamento: <strong id="summary_payment_method"></strong></p>
             <p>Endereço de Entrega: <strong id="summary_address"></strong></p>
             <p>Total: <strong id="summary_total"></strong></p>
-            <button type="button" class="submit-payment-btn" onclick="submitCheckout()">Confirmar e Finalizar</button>
+            <button type="button" class="submit-payment-btn" id="confirm-payment-btn">Confirmar e Finalizar</button>
         </div>
     </div>
     
@@ -341,5 +391,8 @@ window.addEventListener("DOMContentLoaded", function() {
         form.submit();
     }
 </script>
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
 </body>
 </html>

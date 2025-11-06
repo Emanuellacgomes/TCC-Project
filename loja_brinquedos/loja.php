@@ -346,15 +346,48 @@ if (isset($_SESSION['user_codigo'])) {
     <div class="pagination">
         <?php
         $url_params = $_GET;
+        
+        // --- NOVO CÓDIGO PARA LIMITAR OS LINKS DE PÁGINA ---
+        $limite_links = 3; 
+        
+        // 1. Calcula o ponto de partida do loop (garante que a página atual fique no meio)
+        // max(1, ...) impede que o loop comece em 0 ou negativo.
+        $inicio_loop = max(1, $currentPage - floor($limite_links / 2));
+        
+        // 2. Calcula o ponto final do loop
+        // min($totalPaginas, ...) impede que o loop ultrapasse o total de páginas.
+        $fim_loop = min($totalPaginas, $inicio_loop + $limite_links - 1);
+        
+        // 3. Ajuste final: se chegou ao fim (totalPaginas), recua o início para manter o limite
+        if ($fim_loop == $totalPaginas) {
+            $inicio_loop = max(1, $fim_loop - $limite_links + 1);
+        }
+        // --- FIM DO NOVO CÓDIGO ---
+
+        // Link ANTERIOR
         if ($currentPage > 1) {
             $url_params['pagina'] = $currentPage - 1;
             echo "<a href='loja.php?" . http_build_query($url_params) . "' class='pagination-link'>Anterior</a>";
         }
-        for ($i = 1; $i <= $totalPaginas; $i++) {
+        
+        // Exibe "..." se o início não for a página 1
+        if ($inicio_loop > 1) {
+             echo "<span class='pagination-dots'>...</span>";
+        }
+        
+        // Links de PÁGINA (agora limitados)
+        for ($i = $inicio_loop; $i <= $fim_loop; $i++) {
             $url_params['pagina'] = $i;
             $class = ($i == $currentPage) ? 'pagination-link active' : 'pagination-link';
             echo "<a href='loja.php?" . http_build_query($url_params) . "' class='$class'>$i</a>";
         }
+        
+        // Exibe "..." se o fim não for a última página
+        if ($fim_loop < $totalPaginas) {
+             echo "<span class='pagination-dots'>...</span>";
+        }
+
+        // Link PRÓXIMA
         if ($currentPage < $totalPaginas) {
             $url_params['pagina'] = $currentPage + 1;
             echo "<a href='loja.php?" . http_build_query($url_params) . "' class='pagination-link'>Próxima</a>";
@@ -491,7 +524,91 @@ if (isset($_SESSION['user_codigo'])) {
     </footer>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Scripts do CEP
+    // VARIÁVEIS DO PRELOADER E LOGIN
+    const preloader = document.getElementById('preloader');
+    const isLoggedIn = <?php echo isset($_SESSION['user_codigo']) ? 'true' : 'false'; ?>; 
+    
+    // Variáveis para os Listeners
+    const detailsContent = document.getElementById('product-details-content');
+    const paginationContainer = document.querySelector('.pagination'); // Para Paginação
+    const filterContainer = document.querySelector('.filter-bar'); // Seleciona o contêiner da barra de filtros
+    const adminLink = document.getElementById('admin-link'); // Para o Admin
+    const cartLink = document.getElementById('cart-link'); // Já existia
+
+    // Função global para mostrar o preloader
+    function showPreloader() {
+        if (preloader) {
+            preloader.style.display = 'flex';
+        }
+    }
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
+    // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
+    window.addEventListener('pageshow', function(event) {
+        // Se a propriedade persisted for true, a página foi restaurada do cache.
+        if (event.persisted) {
+            hidePreloader();
+        }
+    });
+    
+    // Garante que o preloader esteja escondido por padrão ao carregar
+    hidePreloader();
+    // --- LISTENERS DE AÇÃO QUE CAUSAM REDIRECIONAMENTO ---
+    
+    // LISTENER 1: Formulário de Busca (Estático)
+    const searchForm = document.querySelector('.search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', showPreloader);
+    }
+    
+    // LISTENER 2: Adicionar ao Carrinho (DELEGAÇÃO para formulário DINÂMICO no Modal)
+    detailsContent.addEventListener('submit', function(e) {
+        if (e.target.closest('form')) {
+            showPreloader();
+        }
+    });
+
+    // LISTENER 3: Ativar ao clicar no link de Sair (logout.php)
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', showPreloader);
+    }
+    
+    // LISTENER 4: Ativar ao clicar no link do Carrinho (se estiver logado)
+    if (cartLink && isLoggedIn) {
+        cartLink.addEventListener('click', showPreloader);
+    }
+
+    // LISTENER 5 (NOVO): Ativar ao clicar nos links de Paginação
+    if (paginationContainer) {
+        paginationContainer.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' && e.target.classList.contains('pagination-link')) {
+                showPreloader();
+            }
+        });
+    }
+
+    // LISTENER 6 (CORRIGIDO): Ativar ao clicar nos Filtros/Categorias
+    // Seleciona TODOS os elementos com a classe .category-btn e aplica o listener a cada um
+    const filterButtons = document.querySelectorAll('.category-btn'); 
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', showPreloader);
+    });
+
+    // LISTENER 7 (NOVO): Ativar ao clicar no link do Painel de Admin
+    const adminBtn = document.querySelector('.admin-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', showPreloader);
+    }
+
+    // LISTENER 8: Ativar ao clicar no link de Logar (login.php)
+    const loginBtn = document.querySelector('.login-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', showPreloader);
+    }
+
+    // FIM DO BLOCO PRELOADER. O RESTANTE DO SEU CÓDIGO CONTINUA ABAIXO.
+
+    // Scripts do CEP (Suas variáveis originais, agora funcionais)
     const cepTrigger = document.getElementById('cep-trigger');
     const cepModal = document.getElementById('cep-modal');
     const closeCepModalBtn = cepModal.querySelector('.close-button');
@@ -516,7 +633,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedCep = getCookie('cep_usuario');
     if (savedCep) {
         cepTrigger.innerHTML = '<img src="cep.png" alt="CEP" height="20" width="20"/> CEP: ' + savedCep;
+    } else {
+        cepTrigger.innerHTML = '<img src="cep.png" alt="CEP" height="20" width="20"/> CEP: Não definido';
     }
+
 
     function openCepModal() {
         cepModal.style.display = 'flex';
@@ -530,26 +650,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setCepAndReload(cep, origem = 'manual') {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'loja.php';
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'loja.php';
 
-    const inputCep = document.createElement('input');
-    inputCep.type = 'hidden';
-    inputCep.name = 'cep';
-    inputCep.value = cep;
-    form.appendChild(inputCep);
+        const inputCep = document.createElement('input');
+        inputCep.type = 'hidden';
+        inputCep.name = 'cep';
+        inputCep.value = cep;
+        form.appendChild(inputCep);
 
-    const inputOrigem = document.createElement('input');
-    inputOrigem.type = 'hidden';
-    inputOrigem.name = 'origem';
-    inputOrigem.value = origem;
-    form.appendChild(inputOrigem);
+        const inputOrigem = document.createElement('input');
+        inputOrigem.type = 'hidden';
+        inputOrigem.name = 'origem';
+        inputOrigem.value = origem;
+        form.appendChild(inputOrigem);
 
-    document.body.appendChild(form);
-    form.submit();
-}
+        // A chamada correta: ativa o preloader antes do envio!
+        showPreloader(); 
 
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // AQUI ESTÃO OS LISTENERS DO CEP E MODAIS (AGORA FUNCIONAIS)
     cepTrigger.addEventListener('click', openCepModal);
     closeCepModalBtn.addEventListener('click', closeCepModal);
     closeSecondaryBtn.addEventListener('click', closeCepModal);
@@ -650,15 +774,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // -------- CÓDIGO DA JANELA DE DETALHES (ATUALIZADO) --------
+    // -------- CÓDIGO DA JANELA DE DETALHES --------
     const productGrid = document.querySelector('.product-grid');
     const detailsModal = document.getElementById('product-details-modal');
-    const detailsContent = document.getElementById('product-details-content');
+    // detailsContent foi definido no topo
     const closeDetailsBtn = document.querySelector('.close-details-btn');
     const loginRequiredModal = document.getElementById('login-required-modal');
     const closeLoginPopupBtn = document.getElementById('close-login-popup');
-    const cartLink = document.getElementById('cart-link');
-    const isLoggedIn = <?php echo isset($_SESSION['user_codigo']) ? 'true' : 'false'; ?>;
+    
 
     productGrid.addEventListener('click', function(e) {
         const detailsButton = e.target.closest('.open-details-btn');
@@ -693,7 +816,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         priceHtml = '<div class="details-price">R$ ' + parseFloat(data.preco).toFixed(2).replace('.', ',') + '</div>';
                     }
-
+                    
+                    // O form de Adicionar ao Carrinho agora ativará o Preloader via listener de delegação (feito no topo)
                     const addToCartButtonHtml = isLoggedIn 
                         ? '<form method="post" action="loja.php">' +
                             '<input type="hidden" name="codigo_add_cart" value="' + data.codigo + '">' +
@@ -750,7 +874,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // CORREÇÃO: Clique no carrinho
+    // CORREÇÃO: Clique no carrinho (apenas garante que o preloader não foi chamado duas vezes)
     cartLink.addEventListener('click', function(e) {
         if (!isLoggedIn) {
             e.preventDefault();
@@ -760,7 +884,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // -------- NOVO CÓDIGO DO SLIDESHOW --------
+    // -------- CÓDIGO DO SLIDESHOW --------
     const slides = document.querySelectorAll('.slideshow .slide');
     let currentSlide = 0;
     
@@ -781,5 +905,8 @@ document.addEventListener('DOMContentLoaded', function() {
     showSlide(currentSlide); // Inicia o slideshow
 });
 </script>
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
 </body>
 </html>

@@ -190,7 +190,7 @@ $result_fabricantes = $conn->query($sql_fabricantes);
                                 <input type="hidden" name="codigo_brinquedo" value="<?php echo htmlspecialchars($brinquedo['codigo']); ?>">
                                 <button type="submit" class="edit-btn">Editar</button>
                             </form>
-                            <form method="post" action="gerenciar_brinquedos.php" onsubmit="return confirm('Tem certeza que deseja excluir este item?');" style="display:inline;">
+                            <form method="post" action="gerenciar_brinquedos.php" style="display:inline;">
                                 <input type="hidden" name="action" value="excluir">
                                 <input type="hidden" name="codigo" value="<?php echo htmlspecialchars($brinquedo['codigo']); ?>">
                                 <button type="submit" class="delete-btn">Excluir</button>
@@ -207,6 +207,97 @@ $result_fabricantes = $conn->query($sql_fabricantes);
         </table>
     </div>
 </div>
-
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
 </body>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // VARIÁVEIS ESSENCIAIS
+    const preloader = document.getElementById('preloader');
+    
+    // VARIÁVEIS PARA LISTENERS DE REDIRECIONAMENTO E SUBMISSÃO
+    const addForm = document.querySelector('.add-form');
+    const searchForm = document.querySelector('.search-form');
+    
+    // Links/Botões do Header
+    const adminBtn = document.querySelector('.admin-btn');
+    const homeBtn = document.querySelector('.home-btn');
+    const logoutBtn = document.querySelector('.logout-btn');
+    
+    // Tabela de Dados (Contêiner para delegação de eventos)
+    const dataTable = document.querySelector('.data-table');
+
+    // 1. FUNÇÃO PARA MOSTRAR O PRELOADER
+    function showPreloader() {
+        if (preloader) {
+            preloader.style.display = 'flex';
+        }
+    }
+
+    function hidePreloader() {
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    }
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
+    // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
+    window.addEventListener('pageshow', function(event) {
+        // Se a propriedade persisted for true, a página foi restaurada do cache.
+        if (event.persisted) {
+            hidePreloader();
+        }
+    });
+    
+    // Garante que o preloader esteja escondido por padrão ao carregar
+    hidePreloader();
+
+    // --- LISTENERS DE AÇÃO ---
+
+    // 2. LISTENERS DE FORMULÁRIO (Adicionar e Pesquisar)
+    if (addForm) {
+        addForm.addEventListener('submit', showPreloader);
+    }
+    if (searchForm) {
+        searchForm.addEventListener('submit', showPreloader);
+    }
+
+    // 3. LISTENERS DE LINKS/BOTÕES DO HEADER
+    if (adminBtn) {
+        adminBtn.addEventListener('click', showPreloader);
+    }
+    if (homeBtn) {
+        homeBtn.addEventListener('click', showPreloader);
+    }
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', showPreloader);
+    }
+
+    // 4. LISTENERS DA TABELA (Editar e Excluir)
+    // Usa delegação de eventos para capturar submissões de formulários
+    if (dataTable) {
+        dataTable.addEventListener('submit', function(e) {
+            // Verifica se a submissão veio de um dos formulários de Editar ou Excluir
+            if (e.target.tagName === 'FORM') {
+                // Antes de enviar, verifica se a confirmação de exclusão passou
+                if (e.target.querySelector('input[name="action"][value="excluir"]')) {
+                    // O formulário de exclusão já tem um 'onsubmit' no HTML,
+                    // mas podemos garantir o preloader aqui:
+                    if (confirm('Tem certeza que deseja excluir este item?')) {
+                        showPreloader();
+                    } else {
+                        e.preventDefault(); // Impede o envio se o usuário cancelar
+                    }
+                } else {
+                    // É o formulário de Editar (que redireciona)
+                    showPreloader();
+                }
+            }
+        });
+        
+        // Listener para o botão de editar, caso a lógica de submit no form não seja suficiente.
+        // O listener de 'submit' acima já cobre os dois casos de formulário.
+    }
+});
+</script>
 </html>

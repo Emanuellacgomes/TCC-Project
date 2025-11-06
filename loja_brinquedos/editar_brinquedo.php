@@ -89,7 +89,7 @@ $result_fabricantes = $conn->query($sql_fabricantes);
 <body>
 
 <div class="header">
-    <a href="loja.php">
+    <a href="loja.php" id="logo-link">
         <img src="logo.png" alt="Logo da Loja de Brinquedos" class="logo-loja-adm">
     </a>
     <div class="user-actions">
@@ -159,5 +159,67 @@ $result_fabricantes = $conn->query($sql_fabricantes);
     <?php endif; ?>
 </div>
 
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // VARIÁVEIS ESSENCIAIS
+    const preloader = document.getElementById('preloader');
+    
+    // VARIÁVEIS DE AÇÃO
+    const editForm = document.querySelector('.edit-form');
+    const logoLink = document.getElementById('logo-link'); 
+    const adminBtn = document.querySelector('.admin-btn'); 
+    const homeBtn = document.querySelector('.home-btn'); 
+    const logoutBtn = document.querySelector('.logout-btn'); 
+
+    // 1. FUNÇÕES DO PRELOADER
+    function showPreloader() {
+        if (preloader) {
+            preloader.style.display = 'flex';
+        }
+    }
+    
+    function hidePreloader() {
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    }
+
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR (BFCache)
+    window.addEventListener('pageshow', function(event) {
+        // Se a página foi restaurada do cache (botão Voltar), esconde o preloader
+        if (event.persisted) {
+            hidePreloader();
+        }
+    });
+    
+    // Garante que o preloader comece escondido (boa prática)
+    hidePreloader(); 
+
+    // --- LISTENERS DE AÇÃO ---
+
+    // 3. LISTENER DE FORMULÁRIO (Atualizar Brinquedo)
+    if (editForm) {
+        editForm.addEventListener('submit', showPreloader);
+    }
+
+    // 4. LISTENERS DE LINKS/BOTÕES DO HEADER (Redirecionamento)
+    if (logoLink) {
+        logoLink.addEventListener('click', showPreloader);
+    }
+    if (adminBtn) {
+        adminBtn.addEventListener('click', showPreloader);
+    }
+    if (homeBtn) {
+        homeBtn.addEventListener('click', showPreloader);
+    }
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', showPreloader);
+    }
+});
+</script>
 </body>
 </html>

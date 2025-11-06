@@ -71,13 +71,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         <label for="senha">Senha:</label>
         <input type="password" id="senha" name="senha" required>
         
-        <button type="submit" name="login">Entrar</button>
+        <button class="entrar-btn" type="submit" name="login">Entrar</button>
     </form>
     
     <p class="register-link">
         Não tem uma conta? <a href="cadastro.php">Crie uma aqui</a>
     </p>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // VARIÁVEL ESSENCIAL
+    const preloader = document.getElementById('preloader');
 
+    // Função global para mostrar o preloader
+    function showPreloader() {
+        if (preloader) {
+            preloader.style.display = 'flex';
+        }
+    }
+    
+    // LISTENER 11: Ativar ao clicar no link de Logar (login.php)
+    const entrarBtn = document.querySelector('.entrar-btn');
+    if (entrarBtn) {
+        entrarBtn.addEventListener('click', showPreloader);
+    }
+    function hidePreloader() {
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    }
+    // 2. CORREÇÃO PARA O BOTÃO VOLTAR DO NAVEGADOR
+    // O evento pageshow é disparado quando a página é carregada (incluindo BFCache)
+    window.addEventListener('pageshow', function(event) {
+        // Se a propriedade persisted for true, a página foi restaurada do cache.
+        if (event.persisted) {
+            hidePreloader();
+        }
+    });
+    
+    // Garante que o preloader esteja escondido por padrão ao carregar
+    hidePreloader();
+
+});
+</script>
+<div id="preloader" class="preloader-overlay" style="display: none;">
+    <div class="spinner-border"></div>
+</div>
 </body>
 </html>
