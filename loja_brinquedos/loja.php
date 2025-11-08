@@ -318,6 +318,7 @@ if (isset($_SESSION['user_codigo'])) {
                 <p class="description"><?php echo htmlspecialchars($row['descricao']); ?></p>
                 <div class="price-section">
                     <?php if ($is_desconto_aplicado): ?>
+                        <span class="discount-percent-tag"><?php echo number_format($porcentagem_desconto, 0); ?>% OFF</span>
                         <span class="price-original">R$ <?php echo number_format($preco_original, 2, ',', '.'); ?></span>
                         <span class="price-discounted">R$ <?php echo number_format($preco_exibido, 2, ',', '.'); ?></span>
                     <?php else: ?>
@@ -395,16 +396,6 @@ if (isset($_SESSION['user_codigo'])) {
         ?>
     </div>
     <?php if ($show_lgpd_popup): ?>
-    <div id="lgpd-banner" class="lgpd-popup"> 
-    <div class="lgpd-content">
-        <h4>Aviso de Privacidade - Playtopia</h4>
-        <p>Utilizamos biscoitinhos essenciais! (carrinho, localização) e biscoitinhos opcionais para melhorar sua experiência e personalização!</p>
-        <div class="lgpd-buttons">
-            <button id="accept-lgpd-btn" class="lgpd-btn">Aceitar e Continuar</button>
-            <button id="close-lgpd-btn" class="lgpd-btn-secondary">Apenas Essenciais</button>
-        </div>
-    </div>
-</div>
 <?php endif; ?>
 
 <script>
