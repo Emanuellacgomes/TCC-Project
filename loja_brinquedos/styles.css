@@ -1009,7 +1009,7 @@
 /* Estilos para os filtros de categoria */
 .category-filters {
     position: sticky; /* Faz o elemento "grudar" na posição */
-    top: 73px; /* Define a distância do topo da tela. Ajuste este valor se a altura do seu cabeçalho for diferente. */
+    top: 73.9px; /* Define a distância do topo da tela. Ajuste este valor se a altura do seu cabeçalho for diferente. */
     z-index: 10; /* Garante que a barra de filtros fique acima do conteúdo da página ao rolar */
     
     /* Demais estilos que já existem */
@@ -2562,7 +2562,7 @@ html {
     cursor: pointer;
     transition: background-color 0.3s ease;
     width: 50px;
-    height: 43px;
+    height: 42.7px;
 }
 .search-form input[type="text"]::placeholder {
     color: #000;
