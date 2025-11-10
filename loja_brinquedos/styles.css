@@ -299,7 +299,6 @@
     width: 100%;
     max-width: 400px;
     padding: 10px 15px;
-    border: 2px solid #ff7043;
     border-right: none;
     border-radius: 20px 0 0 20px;
     outline: none;
@@ -308,7 +307,7 @@
 }
 
 .search-form input[type="text"]:focus {
-    border-color: #ffb74d;
+    border-color: #ff975e;
     box-shadow: 0 0 5px rgba(255, 183, 77, 0.5);
 }
 
@@ -321,11 +320,11 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
     position: relative;
-    left: -10px;
+    left: 0px;
 }
 
 .search-button:hover {
-    background-color: #e65100;
+    background-color: #ff975e;
 }
 
 .search-button img {
@@ -1010,7 +1009,7 @@
 /* Estilos para os filtros de categoria */
 .category-filters {
     position: sticky; /* Faz o elemento "grudar" na posição */
-    top: 70px; /* Define a distância do topo da tela. Ajuste este valor se a altura do seu cabeçalho for diferente. */
+    top: 73px; /* Define a distância do topo da tela. Ajuste este valor se a altura do seu cabeçalho for diferente. */
     z-index: 10; /* Garante que a barra de filtros fique acima do conteúdo da página ao rolar */
     
     /* Demais estilos que já existem */
@@ -1040,15 +1039,15 @@
 }
 
 .category-btn.active {
-    background-color: #007bff;
+    background-color: #ff2828;
     color: #fff;
-    border-color: #007bff;
+    border-color: #ff2828;
     font-weight: bold;
 }
 
 .category-btn.active:hover {
-    background-color: #0069d9;
-    border-color: #0062cc;
+    background-color: #c41c1c;
+    border-color: #c41c1c;
 }
 /* Estilos para navegadores baseados em WebKit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
@@ -1075,7 +1074,7 @@
 /* (Ainda não é tão flexível quanto o WebKit) */
 html {
     scrollbar-width: thin;
-    scrollbar-color: #888 #f1f1f1;
+    scrollbar-color: #e31837  #f1f1f1;
 }
 
 /* Estilos para o rodapé */
@@ -2547,7 +2546,7 @@ html {
 .search-form input[type="text"] {
     flex-grow: 1;
     padding: 10px 15px;
-    border: 2px solid var(--secondary-color);
+    border: 3px solid var(--secondary-color);
     border-right: none;
     border-radius: 25px 0 0 25px;
     outline: none;
@@ -2562,8 +2561,12 @@ html {
     border-radius: 0 25px 25px 0;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    width: 50px;
+    height: 43px;
 }
-
+.search-form input[type="text"]::placeholder {
+    color: #000;
+}
 .search-button img {
     filter: invert(1);
     display: block;

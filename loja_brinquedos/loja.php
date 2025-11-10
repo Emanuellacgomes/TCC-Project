@@ -465,6 +465,10 @@ if (isset($_SESSION['user_codigo'])) {
                         <button id="buscar-cep-btn" class="button-modal">Buscar</button>
                     </div>
                     <div id="cep-manual-status" class="status-message"></div>
+                    <br>
+                    <div id="find-cep">
+                        <a href="https://buscacepinter.correios.com.br/app/endereco/index.php?t">Não sei meu CEP.</a>
+                    </div>
                 </div>
 
                 <div class="option-separator">
@@ -901,7 +905,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showSlide(currentSlide);
     }
     
-    setInterval(nextSlide, 3000); // Troca de slide a cada 3 segundos
+    setInterval(nextSlide, 4500); // Troca de slide a cada 4,5 segundos
     
     showSlide(currentSlide); // Inicia o slideshow
 });

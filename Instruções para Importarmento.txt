@@ -1,0 +1,4 @@
+-Para importar o banco, abra o mysql e crie um novo banco de dados chamado: brinquedos_loja
+-Depois, vá para Importar com o banco criado selecionado e importe o arquivo sql
+-Caso ocorra algum erro de importação cheque qual a formatação de texto o banco criado possui
+-A formatação de texto do banco(Collation) deve ser: utf8_general_ci
